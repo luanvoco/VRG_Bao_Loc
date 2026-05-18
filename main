@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VRG Bảo Lộc — Hệ thống Vận hành Thủy điện</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#1A5C38;--green2:#217A4A;--green-bg:#E6F4EC;
+  --blue:#0E4C8A;--blue-bg:#E8F0FA;
+  --tm1:#1A5C38;--tm1-bg:#E6F4EC;
+  --tm2:#0E4C8A;--tm2-bg:#E8F0FA;
+  --water:#00838F;--water-bg:#E0F7FA;
+  --warn:#C62828;--warn-bg:#FFEBEE;
+  --text:#1A2332;--muted:#5F6B7A;--border:#E2E8F0;--bg:#EEF4F1;
+  --sidebar-bg:#0A1F10;--sidebar-w:236px;
+  --hdr-h:54px;--r:10px;
+  --sh:0 1px 3px rgba(0,0,0,.07),0 1px 2px rgba(0,0,0,.05);
+}
+html,body{height:100%;overflow:hidden;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--text)}
+
+/* ── SHELL ── */
+.app-root{display:flex;flex-direction:column;height:100vh}
+
+/* ── HEADER ── */
+.app-hdr{height:var(--hdr-h);background:linear-gradient(135deg,#061A0C 0%,#1A5C38 55%,#217A4A 100%);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  flex-shrink:0;box-shadow:0 2px 10px rgba(0,0,0,.3);z-index:100}
+.app-brand{display:flex;align-items:center;gap:11px}
+.app-logo{width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:18px}
+.app-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.3px}
+.app-sub{font-size:10.5px;color:rgba(255,255,255,.5);margin-left:10px}
+.hdr-mode{display:flex;gap:3px;background:rgba(0,0,0,.22);border-radius:8px;padding:3px}
+.hdr-btn{padding:6px 18px;border-radius:6px;border:none;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s;color:rgba(255,255,255,.75);background:transparent}
+.hdr-btn.active{background:#fff;color:var(--green);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.hdr-btn:hover:not(.active){background:rgba(255,255,255,.1);color:#fff}
+.hdr-date{font-size:11.5px;color:rgba(255,255,255,.55);font-weight:500}
+
+/* ── BODY ── */
+.app-body{flex:1;display:flex;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);background:var(--sidebar-bg);display:flex;flex-direction:column;
+  flex-shrink:0;overflow:hidden;border-right:1px solid rgba(255,255,255,.04)}
+.sidebar-kpi{padding:14px 14px 10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-kpi-title{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.28);
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.sk-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sk-item{background:rgba(255,255,255,.05);border-radius:7px;padding:8px 10px;
+  border:1px solid rgba(255,255,255,.06)}
+.sk-item.wide{grid-column:1/-1}
+.sk-lbl{font-size:9px;font-weight:600;color:rgba(255,255,255,.38);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.sk-val{font-size:17px;font-weight:800;color:#fff;line-height:1;font-variant-numeric:tabular-nums}
+.sk-unit{font-size:9px;color:rgba(255,255,255,.3);margin-top:2px;font-weight:500}
+.sk-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;margin-top:4px}
+.sk-badge.good{background:rgba(26,92,56,.45);color:#81C784}
+.sk-badge.warn{background:rgba(198,40,40,.35);color:#EF9A9A}
+.sidebar-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.22);
+  text-transform:uppercase;letter-spacing:.8px;padding:14px 14px 6px}
+.sidebar-nav{flex:1;overflow-y:auto;padding:4px 8px}
+.sidebar-nav::-webkit-scrollbar{width:4px}
+.sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;
+  cursor:pointer;transition:all .15s;color:rgba(255,255,255,.52);font-size:12.5px;font-weight:500;
+  margin-bottom:2px;user-select:none;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(26,92,56,.55);color:#fff;font-weight:700;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.nav-item .ni-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+  justify-content:center;font-size:14px;flex-shrink:0;background:rgba(255,255,255,.06)}
+.nav-item.active .ni-icon{background:rgba(255,255,255,.16)}
+.nav-item .ni-text{line-height:1.3}
+.nav-item .ni-sub{font-size:9.5px;color:rgba(255,255,255,.32);font-weight:400;display:block;margin-top:1px}
+.nav-item.active .ni-sub{color:rgba(255,255,255,.5)}
+.sidebar-footer{padding:10px 8px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.btn-view-report{width:100%;padding:9px 12px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,#217A4A,#1A5C38);color:#fff;font-size:12.5px;font-weight:700;
+  cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;
+  justify-content:center;gap:7px;box-shadow:0 2px 8px rgba(26,92,56,.45)}
+.btn-view-report:hover{background:linear-gradient(135deg,#2E8B5A,#217A4A);transform:translateY(-1px)}
+
+/* ── MAIN ── */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.main-topbar{height:44px;background:#fff;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0}
+.main-section-name{font-size:13.5px;font-weight:700;color:var(--text)}
+.main-section-desc{font-size:11.5px;color:var(--muted)}
+.main-content{flex:1;overflow-y:auto;padding:20px 24px}
+.main-content::-webkit-scrollbar{width:6px}
+.main-content::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:var(--r);border:1px solid var(--border);
+  margin-bottom:16px;box-shadow:var(--sh);overflow:hidden}
+.card-title{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;
+  display:flex;align-items:center;gap:8px;background:#FAFCFA}
+.card-icon{width:28px;height:28px;border-radius:7px;background:var(--green-bg);
+  display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.card-body{padding:16px}
+
+/* ── FORMS ── */
+.gen-header{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.gen-badge{padding:8px 6px;text-align:center;font-size:12.5px;font-weight:700;border-radius:7px}
+.gen-badge.tm1{background:var(--tm1-bg);color:var(--tm1);border:1px solid #A5D6A7}
+.gen-badge.tm2{background:var(--tm2-bg);color:var(--tm2);border:1px solid #90CAF9}
+.form-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.field{flex:1;min-width:120px}
+.field.wide{min-width:100%;flex:none;width:100%}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px;
+  text-transform:uppercase;letter-spacing:.5px}
+.input-wrap{position:relative}
+.input-wrap input{padding-right:54px}
+.unit{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;
+  color:#94A3B8;font-weight:600;pointer-events:none}
+.field input,.field textarea,.field select{width:100%;padding:8px 12px;border:1.5px solid #E2E8F0;
+  border-radius:7px;font-family:inherit;font-size:13.5px;color:var(--text);background:#fff;
+  outline:none;transition:border-color .15s,box-shadow .15s}
+.field input:hover,.field textarea:hover{border-color:#CBD5E1}
+.field input:focus,.field textarea:focus{border-color:var(--green2);box-shadow:0 0 0 3px rgba(33,122,74,.1)}
+.field input:disabled{background:#F8FAFC;color:#94A3B8;cursor:not-allowed}
+.field textarea{resize:vertical;min-height:62px;font-size:13px;line-height:1.55}
+.calc-hint{font-size:11.5px;color:var(--green);font-weight:500;margin-top:4px;padding:7px 12px;
+  background:#F0FFF4;border-radius:6px;border-left:3px solid var(--green)}
+.calc-hint.water{color:var(--water);background:#E0FBFF;border-left-color:var(--water)}
+.summary-box{padding:10px 14px;background:linear-gradient(135deg,#EAF5EF,#EAF0FA);
+  border-radius:8px;font-size:13px;margin-top:10px;border:1px solid #C8E6C9}
+.section-label{font-size:10px;font-weight:700;color:var(--muted);margin:16px 0 8px;
+  text-transform:uppercase;letter-spacing:.5px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+
+/* ── WATER INDICATOR ── */
+.water-indicator{background:linear-gradient(135deg,#E6F4EC,#E8F0FA);border:1px solid #B2DFDB;
+  border-radius:9px;padding:14px 16px;margin-bottom:14px;display:flex;gap:0}
+.wi-divider{width:1px;background:rgba(0,0,0,.08);margin:0 14px;flex-shrink:0}
+.wi-item{flex:1;text-align:center}
+.wi-label{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:5px}
+.wi-value{font-size:20px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums}
+.wi-unit{font-size:10px;color:#94A3B8;font-weight:500;margin-top:1px}
+.wi-diff{font-size:11px;font-weight:700;margin-top:4px;padding:2px 8px;
+  border-radius:4px;display:inline-block}
+.wi-diff.drop{color:#C62828;background:#FFEBEE}
+.wi-diff.rise{color:#1A5C38;background:#E8F5EE}
+.wi-diff.stable{color:#546E7A;background:#ECEFF1}
+
+/* ── CHART BOX ── */
+.chart-box{background:#fff;border-radius:var(--r);border:1px solid var(--border);
+  margin-bottom:16px;box-shadow:var(--sh);overflow:hidden}
+.chart-box-title{padding:11px 16px;border-bottom:1px solid var(--border);font-size:12.5px;
+  font-weight:700;display:flex;align-items:center;justify-content:space-between;background:#FAFCFA}
+.chart-legend{display:flex;gap:14px;font-size:11px;color:var(--muted)}
+.chart-legend span{display:flex;align-items:center;gap:5px}
+.chart-legend i{display:inline-block;width:22px;height:3px;border-radius:2px}
+.chart-canvas-wrap{padding:14px 16px 10px;height:260px;position:relative}
+
+/* ── POWER GRID TABLE ── */
+.grid-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+.grid-wrap table{width:100%;border-collapse:collapse;font-size:12px}
+.grid-wrap thead{position:sticky;top:0;z-index:5}
+.grid-wrap th{padding:7px 6px;font-size:11px;font-weight:700;text-align:center;
+  background:#1A3A28;color:#fff;white-space:nowrap}
+.grid-wrap th.tm1c{background:var(--tm1)}
+.grid-wrap th.tm2c{background:var(--tm2)}
+.grid-wrap td{padding:1px;border-bottom:1px solid #F1F5F9}
+.grid-wrap td.ck{padding:3px 10px;font-size:11px;color:var(--muted);font-weight:600;
+  background:#F8FAFC;text-align:center;white-space:nowrap;min-width:64px}
+.grid-wrap td.ck.hr{background:#E6F4EC;color:#1A3A28;font-weight:800}
+.grid-wrap td.tot{padding:3px 8px;font-size:11px;font-weight:700;color:#37474F;
+  background:#F1F5F9;text-align:right}
+.grid-wrap input{width:100%;padding:4px 4px;border:none;text-align:right;
+  font-size:12px;font-family:inherit;background:transparent;outline:none}
+.grid-wrap input:focus{background:#EFF6FF;border-radius:3px}
+.grid-wrap tr:hover td{background:#F5FAF7}
+.grid-wrap tr:hover td.ck{background:#E2EFE8}
+.grid-wrap tr:hover td.ck.hr{background:#C8E6C9}
+
+/* ── REPORT SIDEBAR ── */
+.rpt-sidebar-lbl{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.28);
+  text-transform:uppercase;letter-spacing:.7px;padding:14px 14px 8px}
+.rpt-nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;
+  color:rgba(255,255,255,.48);font-size:12px;cursor:pointer;margin-bottom:2px;
+  transition:all .15s;font-weight:500;font-family:inherit;background:none;border:none;
+  width:100%;text-align:left}
+.rpt-nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.sidebar-actions{padding:10px 8px;border-top:1px solid rgba(255,255,255,.07);
+  display:flex;flex-direction:column;gap:6px}
+.btn-action{width:100%;padding:8px 12px;border-radius:7px;border:none;font-size:12px;
+  font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;
+  display:flex;align-items:center;gap:6px;justify-content:center}
+.btn-print{background:rgba(255,255,255,.1);color:rgba(255,255,255,.82)}
+.btn-print:hover{background:rgba(255,255,255,.16);color:#fff}
+.btn-back{background:transparent;color:rgba(255,255,255,.38);font-size:11.5px}
+.btn-back:hover{color:rgba(255,255,255,.65)}
+
+/* ── REPORT ── */
+.rpt-wrap{max-width:980px;margin:0 auto;padding:24px 24px 56px}
+.rpt{background:#fff;border-radius:var(--r);border:1px solid var(--border);
+  padding:28px 32px;font-size:12.5px;box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.rpt-hdr{text-align:center;margin-bottom:22px;padding-bottom:18px;border-bottom:2.5px solid var(--green)}
+.rpt-from{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:500;letter-spacing:.3px}
+.rpt h2{font-size:17px;font-weight:800;color:var(--green);margin:4px 0;
+  text-transform:uppercase;letter-spacing:.4px}
+.rpt h3{font-size:13px;font-weight:600;color:var(--text);margin-top:2px}
+.rpt .rpt-date{font-size:12px;color:var(--muted);margin-top:7px}
+.rpt .sec{font-weight:700;font-size:13px;color:var(--green);margin:18px 0 10px;
+  padding:6px 12px;background:var(--green-bg);border-radius:6px;border-left:4px solid var(--green)}
+.rpt table{width:100%;border-collapse:collapse;margin-bottom:8px}
+.rpt th{border:1px solid #90A4AE;padding:7px 10px;background:var(--green-bg);
+  font-size:11.5px;font-weight:700;text-align:center;color:var(--green)}
+.rpt th.left{text-align:left}
+.rpt td{border:1px solid #CFD8DC;padding:5px 10px;font-size:12px}
+.rpt td.r{text-align:right;font-variant-numeric:tabular-nums}
+.rpt td.c{text-align:center}
+.rpt td.b{font-weight:700}
+.rpt td.hl{font-weight:700;color:var(--green)}
+.rpt td.hl2{font-weight:700;color:var(--blue)}
+.rpt td.hlw{font-weight:700;color:var(--water)}
+.rpt td.bg{background:#F0F9F4}
+.rpt .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+
+/* ── REPORT KPIs ── */
+.rpt-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.rpt-kcard{border-radius:9px;padding:14px 16px;border:1px solid var(--border);position:relative;overflow:hidden}
+.rpt-kcard::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:9px 9px 0 0}
+.rpt-kcard.good::before{background:linear-gradient(90deg,#1A5C38,#2E8B5A)}
+.rpt-kcard.warn::before{background:linear-gradient(90deg,#C62828,#EF5350)}
+.rpt-kcard.water::before{background:linear-gradient(90deg,#00838F,#00BCD4)}
+.rpt-kcard.info::before{background:linear-gradient(90deg,#0E4C8A,#1565C0)}
+.rpt-kcard.neutral::before{background:linear-gradient(90deg,#546E7A,#78909C)}
+.rkc-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:7px}
+.rkc-val{font-size:22px;font-weight:800;letter-spacing:-1px;line-height:1}
+.rkc-val.good{color:#1A5C38}.rkc-val.warn{color:#C62828}
+.rkc-val.water{color:#00838F}.rkc-val.info{color:#0E4C8A}.rkc-val.neutral{color:#37474F}
+.rkc-unit{font-size:11px;color:#94A3B8;font-weight:500;margin-top:3px}
+.rkc-prog-wrap{margin-top:10px;height:5px;background:#F1F5F9;border-radius:3px;overflow:hidden}
+.rkc-prog-bar{height:100%;border-radius:3px}
+.rkc-pct{font-size:10.5px;font-weight:700;margin-top:5px}
+.rkc-pct.good{color:#1A5C38}.rkc-pct.warn{color:#C62828}
+.rkc-sub{font-size:10.5px;color:var(--muted);margin-top:4px}
+.rpt-chart-wrap{border-radius:9px;border:1px solid var(--border);overflow:hidden;
+  margin-bottom:22px;background:#fff}
+.rpt-chart-hdr{padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;
+  font-weight:700;color:var(--green);background:#FAFCFA}
+.rpt-chart-body{padding:12px 16px;height:215px;position:relative}
+.ev-note{font-size:12px;color:var(--muted);margin:10px 0 6px;font-style:italic;
+  padding:8px 12px;background:#FAFCFA;border-radius:6px;border:1px solid var(--border)}
+.rpt .sign{display:flex;justify-content:flex-end;margin-top:26px;
+  padding-top:18px;border-top:1px solid var(--border)}
+.rpt .sign-box{text-align:center;min-width:170px}
+.rpt .sign-role{font-size:11px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.3px;margin-bottom:4px}
+.rpt .sign-space{height:44px;border-bottom:1px solid #CBD5E1;margin-bottom:8px}
+.rpt .sign-name{font-weight:700;font-size:14px}
+.rpt .sign-date{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ── MISC ── */
+.hidden{display:none!important}
+.mt6{margin-top:6px}
+@media(max-width:800px){.rpt .two-col{grid-template-columns:1fr}.rpt-kpis{grid-template-columns:1fr 1fr}}
+@media print{
+  .sidebar,.app-hdr,.rpt-wrap>*:not(.rpt){display:none!important}
+  .app-root,.app-body,.main-area{height:auto;overflow:visible}
+  .main-content{overflow:visible}
+  .rpt{box-shadow:none;border:none}
+  @page{margin:1.5cm}
+}
+</style>
+</head>
+<body>
+<div class="app-root">
+
+<!-- ── HEADER ── -->
+<header class="app-hdr">
+  <div class="app-brand">
+    <div class="app-logo">💧</div>
+    <div>
+      <span class="app-name">THỦY ĐIỆN BẢO LỘC</span>
+      <span class="app-sub">Hệ thống vận hành &amp; báo cáo · Công ty CP VRG Bảo Lộc</span>
+    </div>
+  </div>
+  <div class="hdr-mode">
+    <button class="hdr-btn active" id="modeInput" onclick="switchTab('input')">📝 Nhập liệu</button>
+    <button class="hdr-btn" id="modeReport" onclick="switchTab('report')">📄 Báo cáo</button>
+  </div>
+  <div class="hdr-date" id="hdrDate"></div>
+</header>
+
+<div class="app-body">
+
+  <!-- ══ INPUT PANEL ══ -->
+  <div class="app-body" id="inputPanel" style="flex:1">
+
+    <aside class="sidebar">
+      <div class="sidebar-kpi">
+        <div class="sidebar-kpi-title">Chỉ số đang tính toán</div>
+        <div class="sk-row">
+          <div class="sk-item wide">
+            <div class="sk-lbl">SL Thương Mại</div>
+            <div class="sk-val" id="skSLTM">—</div>
+            <div class="sk-unit">triệu kWh</div>
+            <div id="skSLPct"></div>
+          </div>
+        </div>
+        <div class="sk-row mt6">
+          <div class="sk-item">
+            <div class="sk-lbl">MN Thượng lưu</div>
+            <div class="sk-val" id="skMNTL">—</div>
+            <div class="sk-unit">m (24h)</div>
+          </div>
+          <div class="sk-item">
+            <div class="sk-lbl">Q về hồ</div>
+            <div class="sk-val" id="skQVe">—</div>
+            <div class="sk-unit">m³/s</div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-label">Mục nhập liệu</div>
+      <nav class="sidebar-nav" id="sidebarNav"></nav>
+      <div class="sidebar-footer">
+        <button class="btn-view-report" onclick="switchTab('report')">📄 Xem Báo cáo Tổng Hợp</button>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <div class="main-topbar">
+        <span class="main-section-name" id="mainSectionName">—</span>
+        <span style="color:#CBD5E1">·</span>
+        <span class="main-section-desc" id="mainSectionDesc"></span>
+      </div>
+      <div class="main-content" id="inputContainer"></div>
+    </div>
+
+  </div><!-- /inputPanel -->
+
+  <!-- ══ REPORT PANEL ══ -->
+  <div class="app-body hidden" id="reportPanel" style="flex:1">
+
+    <aside class="sidebar">
+      <div class="sidebar-kpi" style="padding:14px">
+        <div class="sidebar-kpi-title">Tài liệu báo cáo</div>
+        <div style="font-size:11.5px;color:rgba(255,255,255,.45);line-height:1.6;margin-top:6px">
+          Báo cáo tổng hợp tình hình vận hành<br>
+          <span style="color:rgba(255,255,255,.3)">Nhà máy Thủy điện Bảo Lộc</span><br>
+          <span id="rptDateLabel" style="color:rgba(255,255,255,.28);font-size:10.5px"></span>
+        </div>
+      </div>
+      <div class="rpt-sidebar-lbl">Mục lục</div>
+      <nav class="sidebar-nav" style="padding:4px 8px">
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-kpi')">📊 KPI tổng quan</button>
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-chart')">📈 Biểu đồ công suất</button>
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-s1')">I. Công suất theo giờ</button>
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-s2')">II. Tình hình sản xuất</button>
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-s3')">III. Thủy văn &amp; Hồ chứa</button>
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-s4')">IV. Chênh lệch &amp; Ngừng máy</button>
+        <button class="rpt-nav-item" onclick="scrollToId('rpt-s5')">V. Tình hình vận hành</button>
+      </nav>
+      <div class="sidebar-actions">
+        <button class="btn-action btn-print" onclick="window.print()">🖨 In báo cáo</button>
+        <button class="btn-action btn-back" onclick="switchTab('input')">← Quay lại nhập liệu</button>
+      </div>
+    </aside>
+
+    <div class="main-area">
+      <div class="main-content" style="padding:0">
+        <div class="rpt-wrap">
+          <div class="rpt" id="reportContent"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /reportPanel -->
+
+</div><!-- /app-body -->
+</div><!-- /app-root -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════
+const HOURS   = Array.from({length:24},(_,i)=>`${String(i+1).padStart(2,'0')}:00`);
+const PERIODS = Array.from({length:48},(_,i)=>{
+  const h=Math.floor(i/2), m=i%2*30;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+});
+const SECTIONS = [
+  {id:'s0',icon:'📅',title:'Thông tin & A0',    desc:'Ngày, người BC, kế hoạch, đăng ký A0'},
+  {id:'s1',icon:'📊',title:'Chỉ số công tơ',    desc:'Xuất tuyến, đầu cực, tự dùng — TM1 & TM2'},
+  {id:'s2',icon:'💧',title:'Thủy văn & Hồ chứa',desc:'Mực nước, lưu lượng, lũy kế, chênh lệch'},
+  {id:'s3',icon:'📈',title:'Biểu đồ công suất', desc:'48 chu kỳ × 30 phút — TM1 / TM2'},
+  {id:'s4',icon:'📝',title:'Sự kiện & Ký tên',  desc:'Nhật ký vận hành, xác nhận'},
+];
+let currentSection = 0;
+
+// ═══════════════════════════════════════════════════════════
+//  MASTER DATA
+// ═══════════════════════════════════════════════════════════
+const D = {
+  // ─ Thông tin chung ─
+  date:'2026-05-18', reporter:'Nguyễn Văn Tuấn',
+  kh_ngay:0.5000,          // Kế hoạch sản lượng ngày VRG giao (triệu kWh)
+
+  // ─ A0 đăng ký & huy động (MWh) ─
+  sl_a0_tm1:250, sl_a0_tm2:265,
+  sl_hd_tm1:252, sl_hd_tm2:264,
+  cs_kd_tm1:12.25, cs_kd_tm2:12.25,   // Công suất khả dụng (MW)
+
+  // ─ Công tơ TM1 (MWh) ─
+  xt_tm1_0:15000.000, xt_tm1_24:15252.000,   // Xuất tuyến
+  dc_tm1_0:15800.000, dc_tm1_24:16058.400,   // Đầu cực
+  td_tm1_0:800.000,   td_tm1_24:806.400,     // Tự dùng
+
+  // ─ Công tơ TM2 (MWh) ─
+  xt_tm2_0:14800.000, xt_tm2_24:15064.000,
+  dc_tm2_0:15600.000, dc_tm2_24:15871.300,
+  td_tm2_0:800.000,   td_tm2_24:807.300,
+
+  // ─ Mực nước (m) ─
+  mn_tl_0:769.52, mn_tl_24:768.95,     // Thượng lưu 0h và 24h
+  mn_hl:616.80,                          // Hạ lưu (m)
+
+  // ─ Lưu lượng (m³/s) ─
+  q_ve:18.2,            // Q về hồ bình quân ngày
+  q_phat_tm1:9.8,       // Q phát điện TM1
+  q_phat_tm2:10.1,      // Q phát điện TM2
+  q_tran:0,             // Q xả tràn
+  q_day:0,              // Q xả đáy
+
+  // ─ Lũy kế nước về (triệu m³) ─
+  nuoc_lk_thang:42.50,
+  nuoc_lk_nam:185.30,
+
+  // ─ Lũy kế SL TM (MWh) ─
+  sl_tm_lk_thang:7850,
+  sl_tm_lk_nam:48320,
+  sl_tm_lk_total:1892820,
+
+  // ─ Chênh lệch SL vs KH (triệu kWh) – nhập tay ─
+  chenh_su_co:0,
+  chenh_su_co_lk_t:0,  chenh_su_co_lk_n:0,
+  chenh_tv_lk_t:0,     chenh_tv_lk_n:0,     // do thủy văn
+  chenh_evn_lk_t:0,    chenh_evn_lk_n:0,
+
+  // ─ Giờ ngừng máy ─
+  gio_ngung_nm:0,  gio_ngung_tm1:0,  gio_ngung_tm2:0,
+  gio_ngung_nm_lk_t:0, gio_ngung_tm1_lk_t:0, gio_ngung_tm2_lk_t:0,
+  gio_ngung_nm_lk_n:0, gio_ngung_tm1_lk_n:0, gio_ngung_tm2_lk_n:0,
+
+  // ─ Sự kiện & ký tên ─
+  ev_tm1:'* Từ 00h00 đến 24h00 vận hành ổn định theo huy động của điều độ A0.',
+  ev_tm2:'* Từ 00h00 đến 24h00 vận hành ổn định theo huy động của điều độ A0.',
+  ev_dap:'* Đập vận hành bình thường. Không phát sinh xả tràn, xả đáy trong ngày. Cửa van tràn đóng bình thường.',
+  ev_tba:'* Trạm biến áp 110/22 kV vận hành bình thường, không sự cố. Các thiết bị bảo vệ hoạt động tốt.',
+  ev_note:'* Mực nước hồ chứa duy trì trong phạm vi vận hành bình thường. Tình hình thủy văn ổn định, lưu lượng nước về đạt 18.2 m³/s.',
+  signer:'Nguyễn Văn Tuấn', sign_date:'19/05/2026',
+};
+
+// Power periods: 48 × 30min – TM1_P (MW), TM2_P (MW)
+const P = PERIODS.map((_,i)=>{
+  if(i<12)  return {tm1_p:10.5,tm2_p:11.0};   // 00:00–06:00 ngoài giờ cao điểm
+  if(i<38)  return {tm1_p:11.5,tm2_p:12.0};   // 06:00–19:00 giờ cao điểm
+  return            {tm1_p:10.5,tm2_p:11.0};   // 19:00–24:00
+});
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+const n    = k => parseFloat(D[k]) || 0;
+const fmt  = (v,d=2) => v==null||isNaN(v)?'—':Number(v).toFixed(d);
+const fmtN = v => v==null||isNaN(v)?'—':Number(v).toLocaleString('vi-VN',{maximumFractionDigits:3});
+const $ = id => document.getElementById(id);
+
+// ═══════════════════════════════════════════════════════════
+//  CALCULATIONS
+// ═══════════════════════════════════════════════════════════
+function calc(){
+  // Công tơ TM1
+  const xt_tm1 = n('xt_tm1_24')-n('xt_tm1_0');
+  const dc_tm1 = n('dc_tm1_24')-n('dc_tm1_0');
+  const td_tm1 = n('td_tm1_24')-n('td_tm1_0');
+  // Công tơ TM2
+  const xt_tm2 = n('xt_tm2_24')-n('xt_tm2_0');
+  const dc_tm2 = n('dc_tm2_24')-n('dc_tm2_0');
+  const td_tm2 = n('td_tm2_24')-n('td_tm2_0');
+  // Tổng
+  const xt_total = xt_tm1+xt_tm2;
+  const dc_total = dc_tm1+dc_tm2;
+  const td_total = td_tm1+td_tm2;
+  const sl_tm    = xt_total/1000;   // triệu kWh
+  // A0
+  const sl_dk  = (n('sl_a0_tm1')+n('sl_a0_tm2'))/1000;
+  const sl_hd  = (n('sl_hd_tm1')+n('sl_hd_tm2'))/1000;
+  // Thủy văn
+  const mn_diff = n('mn_tl_24')-n('mn_tl_0');
+  const q_phat_total = n('q_phat_tm1')+n('q_phat_tm2');
+  const q_xa = n('q_tran')+n('q_day');
+  // Chênh lệch
+  const chenh_tv  = n('kh_ngay')-sl_dk;   // do thủy văn / ấn định
+  const chenh_evn = sl_dk-sl_tm;          // do EVN/A0 không huy động
+  const chenh_total = n('chenh_su_co')+chenh_tv+chenh_evn;
+  // Giờ công suất
+  const hourlyP = HOURS.map((_,i)=>{
+    const p=P[i*2]; const tm1=p?.tm1_p||0, tm2=p?.tm2_p||0;
+    return {tm1,tm2,total:tm1+tm2};
+  });
+  return {xt_tm1,xt_tm2,xt_total,dc_tm1,dc_tm2,dc_total,
+          td_tm1,td_tm2,td_total,sl_tm,sl_dk,sl_hd,
+          mn_diff,q_phat_total,q_xa,chenh_tv,chenh_evn,chenh_total,hourlyP};
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FIELD BUILDER
+// ═══════════════════════════════════════════════════════════
+function fi(label,key,opts={}){
+  const type=opts.type||'number', unit=opts.unit||'', dis=opts.disabled?'disabled':'';
+  const val=D[key]??'';
+  if(type==='textarea')
+    return `<div class="field wide"><label>${label}</label><textarea data-key="${key}" rows="${opts.rows||3}" oninput="upd('${key}',this.value)" ${dis}>${val}</textarea></div>`;
+  const unitHtml=unit?`<span class="unit">${unit}</span>`:'';
+  const wrapCls=unit?'input-wrap':'';
+  return `<div class="field"><label>${label}</label><div class="${wrapCls}"><input type="${type}" value="${val}" step="any" data-key="${key}" oninput="upd('${key}',this.value)" ${dis}>${unitHtml}</div></div>`;
+}
+function genHdr(){
+  return `<div class="gen-header">
+    <div class="gen-badge tm1">TM1 · Tổ máy 1 (12.25 MW)</div>
+    <div class="gen-badge tm2">TM2 · Tổ máy 2 (12.25 MW)</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DATA UPDATE
+// ═══════════════════════════════════════════════════════════
+function upd(k,v){
+  D[k]=v;
+  updateSidebarKPI();
+  if(k.startsWith('mn_')||k==='q_ve') updateWaterIndicator();
+}
+function updP(i,k,v){
+  P[i][k]=parseFloat(v)||0;
+  updatePowerChart();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SIDEBAR KPI (live update)
+// ═══════════════════════════════════════════════════════════
+function updateSidebarKPI(){
+  const c=calc();
+  if($('skSLTM'))  $('skSLTM').textContent  = fmt(c.sl_tm,4);
+  if($('skMNTL'))  $('skMNTL').textContent  = fmt(n('mn_tl_24'),2);
+  if($('skQVe'))   $('skQVe').textContent   = fmt(n('q_ve'),1);
+  if($('hdrDate')) $('hdrDate').textContent = D.date?`Ngày ${D.date}`:'';
+  if($('skSLPct')){
+    const pct=n('kh_ngay')>0?c.sl_tm/n('kh_ngay')*100:0;
+    const cls=pct>=100?'good':'warn';
+    $('skSLPct').innerHTML=`<span class="sk-badge ${cls}">${fmt(pct,1)}% KH ngày</span>`;
+  }
+  // Calc hints
+  if($('calcXT'))
+    $('calcXT').textContent=`Δ TM1 = ${fmt(c.xt_tm1,0)} MWh · TM2 = ${fmt(c.xt_tm2,0)} MWh · Tổng XT = ${fmt(c.xt_total,0)} MWh → SL TM = ${fmt(c.sl_tm,4)} tr.kWh`;
+  if($('calcDC'))
+    $('calcDC').textContent=`Δ TM1 = ${fmt(c.dc_tm1,0)} MWh · TM2 = ${fmt(c.dc_tm2,0)} MWh · Tổng ĐC = ${fmt(c.dc_total,0)} MWh`;
+  if($('calcTD'))
+    $('calcTD').textContent=`Δ TM1 = ${fmt(c.td_tm1,0)} MWh · TM2 = ${fmt(c.td_tm2,0)} MWh · Tổng TD = ${fmt(c.td_total,0)} MWh`;
+  if($('calcSummary'))
+    $('calcSummary').innerHTML=`<b>Đăng ký A0:</b> ${fmtN((n('sl_a0_tm1')+n('sl_a0_tm2')))} MWh &nbsp;·&nbsp; <b>Huy động:</b> ${fmtN((n('sl_hd_tm1')+n('sl_hd_tm2')))} MWh &nbsp;·&nbsp; <b>SL TM thực tế:</b> ${fmt(c.sl_tm,4)} tr.kWh`;
+  if($('calcMN')){
+    const diff=n('mn_tl_24')-n('mn_tl_0');
+    const sign=diff>=0?'+':'';
+    $('calcMN').textContent=`Biến động MN TL: ${sign}${fmt(diff,2)} m · Q phát tổng: ${fmt(c.q_phat_total,1)} m³/s · Q xả: ${fmt(c.q_xa,1)} m³/s`;
+  }
+  if($('calcChenh'))
+    $('calcChenh').innerHTML=`<b>Tổng chênh:</b> ${fmt(c.chenh_total,4)} tr.kWh &nbsp;·&nbsp; Do thủy văn: ${fmt(c.chenh_tv,4)} &nbsp;·&nbsp; Do EVN/A0: ${fmt(c.chenh_evn,4)}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WATER INDICATOR (live)
+// ═══════════════════════════════════════════════════════════
+function updateWaterIndicator(){
+  if(!$('wiTL0')) return;
+  const diff=n('mn_tl_24')-n('mn_tl_0');
+  $('wiTL0').textContent  = fmt(n('mn_tl_0'),2);
+  $('wiTL24').textContent = fmt(n('mn_tl_24'),2);
+  $('wiHL').textContent   = fmt(n('mn_hl'),2);
+  if($('wiDiff')){
+    const sign=diff>=0?'+':'';
+    const cls=diff>0.02?'rise':diff<-0.02?'drop':'stable';
+    const arrow=diff>0.02?'↑':diff<-0.02?'↓':'→';
+    $('wiDiff').textContent=`${arrow} ${sign}${fmt(diff,2)} m`;
+    $('wiDiff').className=`wi-diff ${cls}`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  POWER CHART (input section 3)
+// ═══════════════════════════════════════════════════════════
+let powerChartInst=null;
+function updatePowerChart(){
+  const el=$('powerChartCanvas'); if(!el) return;
+  const d1=P.map(p=>p.tm1_p||0);
+  const d2=P.map(p=>p.tm2_p||0);
+  const dT=d1.map((v,i)=>v+d2[i]);
+  if(powerChartInst){
+    powerChartInst.data.datasets[0].data=d1;
+    powerChartInst.data.datasets[1].data=d2;
+    powerChartInst.data.datasets[2].data=dT;
+    powerChartInst.update('none'); return;
+  }
+  powerChartInst=new Chart(el,{
+    type:'line',
+    data:{labels:PERIODS,datasets:[
+      {label:'TM1',data:d1,borderColor:'#1A5C38',backgroundColor:'rgba(26,92,56,.1)',tension:.35,pointRadius:0,fill:true},
+      {label:'TM2',data:d2,borderColor:'#0E4C8A',backgroundColor:'rgba(14,76,138,.07)',tension:.35,pointRadius:0,fill:true},
+      {label:'Tổng',data:dT,borderColor:'#546E7A',borderWidth:1.5,borderDash:[4,3],tension:.35,pointRadius:0,fill:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:18,font:{size:11}}}},
+      scales:{
+        x:{ticks:{maxTicksLimit:12,font:{size:10}},grid:{display:false}},
+        y:{beginAtZero:true,max:28,title:{display:true,text:'MW',font:{size:10}},ticks:{font:{size:10}}}
+      }}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SECTION RENDERS
+// ═══════════════════════════════════════════════════════════
+
+/* ── S0: Thông tin & A0 ── */
+function renderS0(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title"><span class="card-icon">📅</span>Thông tin chung</div>
+      <div class="card-body">
+        <div class="form-row">
+          ${fi('Ngày báo cáo','date',{type:'date'})}
+          ${fi('Người lập báo cáo','reporter',{type:'text'})}
+        </div>
+        <div class="form-row">
+          ${fi('KH sản lượng ngày (VRG giao)','kh_ngay',{unit:'tr.kWh'})}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-icon">⚡</span>Sản lượng đăng ký & Huy động A0</div>
+      <div class="card-body">
+        ${genHdr()}
+        <div class="section-label">Sản lượng đăng ký A0 (MWh)</div>
+        <div class="form-row">
+          ${fi('TM1','sl_a0_tm1',{unit:'MWh'})}
+          ${fi('TM2','sl_a0_tm2',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Sản lượng huy động A0 (MWh)</div>
+        <div class="form-row">
+          ${fi('TM1','sl_hd_tm1',{unit:'MWh'})}
+          ${fi('TM2','sl_hd_tm2',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Công suất khả dụng (MW)</div>
+        <div class="form-row">
+          ${fi('TM1','cs_kd_tm1',{unit:'MW'})}
+          ${fi('TM2','cs_kd_tm2',{unit:'MW'})}
+        </div>
+        <div class="summary-box" id="calcSummary">—</div>
+      </div>
+    </div>`;
+  updateSidebarKPI();
+}
+
+/* ── S1: Chỉ số công tơ ── */
+function renderS1(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title"><span class="card-icon" style="background:var(--tm1-bg)">📊</span>Chỉ số công tơ — TM1 · Tổ máy 1</div>
+      <div class="card-body">
+        <div class="section-label">Sản lượng xuất tuyến — XT (MWh)</div>
+        <div class="form-row">
+          ${fi('XT — 0h00','xt_tm1_0',{unit:'MWh'})}
+          ${fi('XT — 24h00','xt_tm1_24',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Sản lượng đầu cực — ĐC (MWh)</div>
+        <div class="form-row">
+          ${fi('ĐC — 0h00','dc_tm1_0',{unit:'MWh'})}
+          ${fi('ĐC — 24h00','dc_tm1_24',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Sản lượng tự dùng — TD (MWh)</div>
+        <div class="form-row">
+          ${fi('TD — 0h00','td_tm1_0',{unit:'MWh'})}
+          ${fi('TD — 24h00','td_tm1_24',{unit:'MWh'})}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-icon" style="background:var(--tm2-bg)">📊</span>Chỉ số công tơ — TM2 · Tổ máy 2</div>
+      <div class="card-body">
+        <div class="section-label">Sản lượng xuất tuyến — XT (MWh)</div>
+        <div class="form-row">
+          ${fi('XT — 0h00','xt_tm2_0',{unit:'MWh'})}
+          ${fi('XT — 24h00','xt_tm2_24',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Sản lượng đầu cực — ĐC (MWh)</div>
+        <div class="form-row">
+          ${fi('ĐC — 0h00','dc_tm2_0',{unit:'MWh'})}
+          ${fi('ĐC — 24h00','dc_tm2_24',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Sản lượng tự dùng — TD (MWh)</div>
+        <div class="form-row">
+          ${fi('TD — 0h00','td_tm2_0',{unit:'MWh'})}
+          ${fi('TD — 24h00','td_tm2_24',{unit:'MWh'})}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-icon">🧮</span>Kết quả tính toán tổng hợp (TM1 + TM2)</div>
+      <div class="card-body">
+        <div class="calc-hint" id="calcXT">—</div>
+        <div class="calc-hint mt6" id="calcDC">—</div>
+        <div class="calc-hint mt6" id="calcTD">—</div>
+      </div>
+    </div>`;
+  updateSidebarKPI();
+}
+
+/* ── S2: Thủy văn & Hồ chứa ── */
+function renderS2(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title"><span class="card-icon">🌊</span>Mực nước hồ chứa</div>
+      <div class="card-body">
+        <div class="water-indicator">
+          <div class="wi-item">
+            <div class="wi-label">MN Thượng lưu — 0h</div>
+            <div class="wi-value" id="wiTL0">${fmt(n('mn_tl_0'),2)}</div>
+            <div class="wi-unit">m</div>
+          </div>
+          <div class="wi-divider"></div>
+          <div class="wi-item">
+            <div class="wi-label">MN Thượng lưu — 24h</div>
+            <div class="wi-value" id="wiTL24">${fmt(n('mn_tl_24'),2)}</div>
+            <div class="wi-unit">m</div>
+            <div class="wi-diff stable" id="wiDiff">→ 0.00 m</div>
+          </div>
+          <div class="wi-divider"></div>
+          <div class="wi-item">
+            <div class="wi-label">MN Hạ lưu</div>
+            <div class="wi-value" id="wiHL">${fmt(n('mn_hl'),2)}</div>
+            <div class="wi-unit">m</div>
+          </div>
+        </div>
+        <div class="section-label">Nhập chỉ số mực nước (m)</div>
+        <div class="form-row">
+          ${fi('MN Thượng lưu — 0h00','mn_tl_0',{unit:'m'})}
+          ${fi('MN Thượng lưu — 24h00','mn_tl_24',{unit:'m'})}
+          ${fi('MN Hạ lưu','mn_hl',{unit:'m'})}
+        </div>
+        <div class="calc-hint water" id="calcMN">—</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-icon">💧</span>Lưu lượng nước (m³/s)</div>
+      <div class="card-body">
+        <div class="section-label">Lưu lượng bình quân ngày</div>
+        <div class="form-row">
+          ${fi('Q nước về hồ (bình quân)','q_ve',{unit:'m³/s'})}
+          ${fi('Q phát điện TM1','q_phat_tm1',{unit:'m³/s'})}
+          ${fi('Q phát điện TM2','q_phat_tm2',{unit:'m³/s'})}
+        </div>
+        <div class="section-label">Lưu lượng xả</div>
+        <div class="form-row">
+          ${fi('Q xả tràn','q_tran',{unit:'m³/s'})}
+          ${fi('Q xả đáy','q_day',{unit:'m³/s'})}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-icon">📋</span>Lũy kế & Chênh lệch KH</div>
+      <div class="card-body">
+        <div class="section-label">Lũy kế nước về hồ (triệu m³)</div>
+        <div class="form-row">
+          ${fi('LK tháng','nuoc_lk_thang',{unit:'tr.m³'})}
+          ${fi('LK năm','nuoc_lk_nam',{unit:'tr.m³'})}
+        </div>
+        <div class="section-label">Lũy kế SL thương mại (MWh)</div>
+        <div class="form-row">
+          ${fi('LK tháng','sl_tm_lk_thang',{unit:'MWh'})}
+          ${fi('LK năm','sl_tm_lk_nam',{unit:'MWh'})}
+          ${fi('LK toàn bộ','sl_tm_lk_total',{unit:'MWh'})}
+        </div>
+        <div class="section-label">Chênh lệch SL vs KH — nhập tay (triệu kWh)</div>
+        <div class="form-row">
+          ${fi('Do sự cố (trong ngày)','chenh_su_co',{unit:'tr.kWh'})}
+        </div>
+        <div class="calc-hint" id="calcChenh">—</div>
+        <div class="section-label">Chênh lệch lũy kế tháng (triệu kWh)</div>
+        <div class="form-row">
+          ${fi('Do sự cố','chenh_su_co_lk_t')}
+          ${fi('Do thủy văn','chenh_tv_lk_t')}
+          ${fi('Do EVN/A0','chenh_evn_lk_t')}
+        </div>
+        <div class="section-label">Chênh lệch lũy kế năm (triệu kWh)</div>
+        <div class="form-row">
+          ${fi('Do sự cố','chenh_su_co_lk_n')}
+          ${fi('Do thủy văn','chenh_tv_lk_n')}
+          ${fi('Do EVN/A0','chenh_evn_lk_n')}
+        </div>
+        <div class="section-label">Số giờ ngừng máy</div>
+        <div class="form-row">
+          ${fi('Toàn NM (ngày)','gio_ngung_nm',{unit:'h'})}
+          ${fi('TM1 (ngày)','gio_ngung_tm1',{unit:'h'})}
+          ${fi('TM2 (ngày)','gio_ngung_tm2',{unit:'h'})}
+        </div>
+        <div class="form-row">
+          ${fi('Toàn NM (LK tháng)','gio_ngung_nm_lk_t',{unit:'h'})}
+          ${fi('TM1 (LK tháng)','gio_ngung_tm1_lk_t',{unit:'h'})}
+          ${fi('TM2 (LK tháng)','gio_ngung_tm2_lk_t',{unit:'h'})}
+        </div>
+        <div class="form-row">
+          ${fi('Toàn NM (LK năm)','gio_ngung_nm_lk_n',{unit:'h'})}
+          ${fi('TM1 (LK năm)','gio_ngung_tm1_lk_n',{unit:'h'})}
+          ${fi('TM2 (LK năm)','gio_ngung_tm2_lk_n',{unit:'h'})}
+        </div>
+      </div>
+    </div>`;
+  updateSidebarKPI();
+  updateWaterIndicator();
+}
+
+/* ── S3: Biểu đồ công suất ── */
+function renderS3(c){
+  const rows=PERIODS.map((t,i)=>{
+    const isHour=i%2===0;
+    const hrCls=isHour?' hr':'';
+    const tot=fmt((P[i].tm1_p||0)+(P[i].tm2_p||0),1);
+    return `<tr>
+      <td class="ck${hrCls}">${t}</td>
+      <td><input type="number" step="0.1" min="0" max="15" value="${P[i].tm1_p}" oninput="updP(${i},'tm1_p',this.value)"></td>
+      <td><input type="number" step="0.1" min="0" max="15" value="${P[i].tm2_p}" oninput="updP(${i},'tm2_p',this.value)"></td>
+      <td class="tot">${tot}</td>
+    </tr>`;
+  }).join('');
+  c.innerHTML=`
+    <div class="chart-box">
+      <div class="chart-box-title">
+        Đường cong công suất thực phát (MW) — 48 chu kỳ × 30 phút
+        <div class="chart-legend">
+          <span><i style="background:#1A5C38"></i>TM1</span>
+          <span><i style="background:#0E4C8A"></i>TM2</span>
+          <span><i style="background:#546E7A;opacity:.6"></i>Tổng</span>
+        </div>
+      </div>
+      <div class="chart-canvas-wrap"><canvas id="powerChartCanvas"></canvas></div>
+    </div>
+    <div class="grid-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:72px">Chu kỳ</th>
+          <th class="tm1c">TM1 · P (MW)</th>
+          <th class="tm2c">TM2 · P (MW)</th>
+          <th>Tổng (MW)</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  updatePowerChart();
+}
+
+/* ── S4: Sự kiện & Ký tên ── */
+function renderS4(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="card-title"><span class="card-icon">📝</span>Nhật ký vận hành trong ngày</div>
+      <div class="card-body">
+        <div class="section-label">Tổ máy TM1</div>
+        <div class="form-row">${fi('Sự kiện TM1','ev_tm1',{type:'textarea',rows:3})}</div>
+        <div class="section-label">Tổ máy TM2</div>
+        <div class="form-row">${fi('Sự kiện TM2','ev_tm2',{type:'textarea',rows:3})}</div>
+        <div class="section-label">Đập & Công trình thủy công</div>
+        <div class="form-row">${fi('Tình hình đập','ev_dap',{type:'textarea',rows:3})}</div>
+        <div class="section-label">Trạm biến áp (TBA)</div>
+        <div class="form-row">${fi('Tình hình TBA','ev_tba',{type:'textarea',rows:2})}</div>
+        <div class="section-label">Ghi chú chung / Xác nhận bổ sung</div>
+        <div class="form-row">${fi('Ghi chú','ev_note',{type:'textarea',rows:3})}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="card-icon">✍️</span>Xác nhận & Ký tên</div>
+      <div class="card-body">
+        <div class="form-row">
+          ${fi('Người lập báo cáo','signer',{type:'text'})}
+          ${fi('Ngày ký','sign_date',{type:'text'})}
+        </div>
+      </div>
+    </div>`;
+  updateSidebarKPI();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SIDEBAR
+// ═══════════════════════════════════════════════════════════
+function buildSidebar(){
+  const nav=$('sidebarNav'); if(!nav) return;
+  nav.innerHTML=SECTIONS.map((s,i)=>`
+    <button class="nav-item ${i===currentSection?'active':''}" onclick="goSection(${i})">
+      <span class="ni-icon">${s.icon}</span>
+      <span class="ni-text">${s.title}<span class="ni-sub">${s.desc}</span></span>
+    </button>`).join('');
+}
+function goSection(i){
+  currentSection=i; buildSidebar();
+  $('mainSectionName').textContent = SECTIONS[i].title;
+  $('mainSectionDesc').textContent = SECTIONS[i].desc;
+  const c=$('inputContainer');
+  powerChartInst=null;
+  [renderS0,renderS1,renderS2,renderS3,renderS4][i](c);
+  updateSidebarKPI();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REPORT CHART
+// ═══════════════════════════════════════════════════════════
+let rptChartInst=null;
+function initRptChart(){
+  const el=$('rptChartCanvas'); if(!el) return;
+  if(rptChartInst){rptChartInst.destroy();rptChartInst=null;}
+  const c=calc();
+  rptChartInst=new Chart(el,{
+    type:'line',
+    data:{labels:HOURS,datasets:[
+      {label:'TM1',data:c.hourlyP.map(h=>h.tm1),borderColor:'#1A5C38',backgroundColor:'rgba(26,92,56,.12)',fill:true,tension:.35,pointRadius:2,pointHoverRadius:4},
+      {label:'TM2',data:c.hourlyP.map(h=>h.tm2),borderColor:'#0E4C8A',backgroundColor:'rgba(14,76,138,.08)',fill:true,tension:.35,pointRadius:2,pointHoverRadius:4},
+      {label:'Tổng',data:c.hourlyP.map(h=>h.total),borderColor:'#37474F',borderWidth:2,borderDash:[5,3],fill:false,tension:.35,pointRadius:0},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:16,font:{size:11}}}},
+      scales:{
+        x:{ticks:{font:{size:10}},grid:{color:'#F1F5F9'}},
+        y:{beginAtZero:true,max:28,title:{display:true,text:'MW',font:{size:10}},
+           ticks:{font:{size:10}},grid:{color:'#F1F5F9'}}
+      }}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  REPORT RENDER
+// ═══════════════════════════════════════════════════════════
+function renderReport(){
+  const c=calc();
+  const el=$('reportContent'); if(!el) return;
+  if($('rptDateLabel')) $('rptDateLabel').textContent=D.date?`Ngày ${D.date}`:'';
+
+  const f2=(v,d=2)=>v==null||isNaN(v)?'—':Number(v).toFixed(d);
+  const td =(s,cls='')=>`<td class="${cls}">${s}</td>`;
+  const tdn=(v,d=3)=>`<td class="r">${f2(v,d)}</td>`;
+
+  // KPI helpers
+  const pct_sl = n('kh_ngay')>0 ? c.sl_tm/n('kh_ngay')*100 : 0;
+  const sl_cls = pct_sl>=100?'good':'warn';
+
+  const mk=(label,val,unit,sub,pct,cls,showBar)=>`
+    <div class="rpt-kcard ${cls}">
+      <div class="rkc-lbl">${label}</div>
+      <div class="rkc-val ${cls}">${val}</div>
+      <div class="rkc-unit">${unit}</div>
+      ${showBar&&pct>0?`
+        <div class="rkc-prog-wrap"><div class="rkc-prog-bar" style="width:${Math.min(pct,100)}%;background:${cls==='good'?'#2E8B5A':cls==='warn'?'#EF5350':'#1976D2'}"></div></div>
+        <div class="rkc-pct ${pct>=100?'good':'warn'}">${f2(pct,1)}%</div>`:''}
+      <div class="rkc-sub">${sub}</div>
+    </div>`;
+
+  // Mực nước KPI
+  const mn_diff=c.mn_diff;
+  const mn_sign=mn_diff>=0?'↑+':'↓';
+  const mn_cls=mn_diff<-0.3?'warn':mn_diff>0.3?'good':'water';
+
+  // Lưu lượng KPI
+  const q_cls=n('q_tran')>0?'warn':'water';
+
+  // Hourly rows
+  const hourlyRows=HOURS.map((h,i)=>{
+    const hp=c.hourlyP[i];
+    return `<tr>
+      <td class="c">${h}</td>
+      <td class="r" style="color:var(--tm1);font-weight:600">${f2(hp.tm1,2)}</td>
+      <td class="r" style="color:var(--tm2);font-weight:600">${f2(hp.tm2,2)}</td>
+      <td class="r b">${f2(hp.total,2)}</td>
+    </tr>`;
+  }).join('');
+
+  // Chênh lệch tổng lũy kế
+  const chenh_lk_t = n('chenh_su_co_lk_t')+n('chenh_tv_lk_t')+n('chenh_evn_lk_t');
+  const chenh_lk_n = n('chenh_su_co_lk_n')+n('chenh_tv_lk_n')+n('chenh_evn_lk_n');
+
+  el.innerHTML=`
+    <div class="rpt-hdr">
+      <div class="rpt-from">CÔNG TY CỔ PHẦN VRG - BẢO LỘC</div>
+      <h2>Báo cáo tổng hợp tình hình vận hành trong ngày</h2>
+      <h3>Nhà máy Thủy điện Bảo Lộc — Sông La Ngà · Lâm Đồng</h3>
+      <div class="rpt-date">Từ 0g00 đến 24g00 ngày <b>${D.date}</b></div>
+    </div>
+
+    <div id="rpt-kpi" class="rpt-kpis">
+      ${mk('SL thương mại thực tế',f2(c.sl_tm,4),'tr.kWh',`KH: ${f2(n('kh_ngay'),4)} tr.kWh`,pct_sl,sl_cls,true)}
+      ${mk('Mực nước TL — 24h',f2(n('mn_tl_24'),2),'m',`${mn_sign}${f2(Math.abs(mn_diff),2)} m so với 0h`,0,mn_cls,false)}
+      ${mk('Lưu lượng về hồ',f2(n('q_ve'),1),'m³/s',`Q phát: ${f2(c.q_phat_total,1)} m³/s · Q xả: ${f2(c.q_xa,1)} m³/s`,0,q_cls,false)}
+      ${mk('Chênh lệch vs KH',f2(c.chenh_total,4),'tr.kWh',`SC·${f2(n('chenh_su_co'),3)}  TV·${f2(c.chenh_tv,3)}  A0·${f2(c.chenh_evn,3)}`,0,c.chenh_total>=0?'good':'warn',false)}
+    </div>
+
+    <div id="rpt-chart" class="rpt-chart-wrap">
+      <div class="rpt-chart-hdr">📈 Đường cong công suất thực phát theo giờ (MW)</div>
+      <div class="rpt-chart-body"><canvas id="rptChartCanvas"></canvas></div>
+    </div>
+
+    <div id="rpt-s1" class="sec">I. Công suất thực phát theo giờ (MW)</div>
+    <div style="overflow-x:auto"><table>
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:68px;vertical-align:middle">Giờ</th>
+          <th colspan="2">Công suất thực phát (MW)</th>
+          <th rowspan="2" style="vertical-align:middle">Tổng giao nhận</th>
+        </tr>
+        <tr>
+          <th style="background:var(--tm1-bg);color:var(--tm1)">TM1</th>
+          <th style="background:var(--tm2-bg);color:var(--tm2)">TM2</th>
+        </tr>
+      </thead>
+      <tbody>${hourlyRows}</tbody>
+    </table></div>
+
+    <div class="two-col">
+      <div>
+        <div id="rpt-s2" class="sec">II. Tình hình sản xuất điện</div>
+        <table><thead><tr><th class="left">Chỉ tiêu</th><th>ĐV</th><th>Giá trị</th></tr></thead><tbody>
+          <tr>${td('KH sản lượng ngày (VRG giao)')}${td('tr.kWh','c')}${tdn(n('kh_ngay'),4)}</tr>
+          <tr>${td('SL đăng ký A0 (TM1+TM2)')}${td('tr.kWh','c')}${tdn(c.sl_dk,4)}</tr>
+          <tr>${td('&nbsp;&nbsp;— TM1 đăng ký')}${td('MWh','c')}${tdn(n('sl_a0_tm1'),0)}</tr>
+          <tr>${td('&nbsp;&nbsp;— TM2 đăng ký')}${td('MWh','c')}${tdn(n('sl_a0_tm2'),0)}</tr>
+          <tr>${td('SL huy động A0 (TM1+TM2)')}${td('MWh','c')}${tdn(c.sl_hd*1000,0)}</tr>
+          <tr>${td('<b>SL thương mại thực tế (TM1+TM2)</b>')}${td('tr.kWh','c')}<td class="r hl">${f2(c.sl_tm,4)}</td></tr>
+          <tr>${td('SL đầu cực TM1+TM2')}${td('MWh','c')}${tdn(c.dc_total,1)}</tr>
+          <tr>${td('SL tự dùng TM1+TM2')}${td('MWh','c')}${tdn(c.td_total,1)}</tr>
+          <tr class="bg">${td('SL TM lũy kế tháng')}${td('MWh','c')}${tdn(n('sl_tm_lk_thang'),0)}</tr>
+          <tr class="bg">${td('SL TM lũy kế năm')}${td('MWh','c')}${tdn(n('sl_tm_lk_nam'),0)}</tr>
+          <tr class="bg">${td('SL TM lũy kế toàn bộ')}${td('MWh','c')}${tdn(n('sl_tm_lk_total'),0)}</tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div id="rpt-s3" class="sec">III. Thủy văn & Hồ chứa</div>
+        <table><tbody>
+          <tr>${td('<b>MN thượng lưu — 0h00</b>')}${td('m','c')}<td class="r hl2">${f2(n('mn_tl_0'),2)}</td></tr>
+          <tr>${td('<b>MN thượng lưu — 24h00</b>')}${td('m','c')}<td class="r hl2">${f2(n('mn_tl_24'),2)}</td></tr>
+          <tr>${td('Biến động MN thượng lưu')}${td('m','c')}<td class="r ${mn_diff<0?'':'hl'}" style="${mn_diff<0?'color:#C62828;font-weight:700':''}">${(mn_diff>=0?'+':'')}${f2(mn_diff,2)}</td></tr>
+          <tr>${td('MN hạ lưu')}${td('m','c')}${tdn(n('mn_hl'),2)}</tr>
+          <tr>${td('<b>Q nước về hồ (bình quân ngày)</b>')}${td('m³/s','c')}<td class="r hlw">${f2(n('q_ve'),1)}</td></tr>
+          <tr>${td('Q phát điện TM1')}${td('m³/s','c')}${tdn(n('q_phat_tm1'),1)}</tr>
+          <tr>${td('Q phát điện TM2')}${td('m³/s','c')}${tdn(n('q_phat_tm2'),1)}</tr>
+          <tr>${td('Q phát tổng (TM1+TM2)')}${td('m³/s','c')}${tdn(c.q_phat_total,1)}</tr>
+          <tr>${td('Q xả tràn')}${td('m³/s','c')}${tdn(n('q_tran'),1)}</tr>
+          <tr>${td('Q xả đáy')}${td('m³/s','c')}${tdn(n('q_day'),1)}</tr>
+          <tr class="bg">${td('Nước về hồ — LK tháng')}${td('tr.m³','c')}${tdn(n('nuoc_lk_thang'),2)}</tr>
+          <tr class="bg">${td('Nước về hồ — LK năm')}${td('tr.m³','c')}${tdn(n('nuoc_lk_nam'),2)}</tr>
+        </tbody></table>
+      </div>
+    </div>
+
+    <div id="rpt-s4" class="sec">IV. Chênh lệch KH vs Thực tế & Số giờ ngừng máy</div>
+    <div class="two-col">
+      <div>
+        <table><thead><tr><th class="left">Nguyên nhân chênh lệch</th><th>Trong ngày</th><th>LK tháng</th><th>LK năm</th></tr></thead><tbody>
+          <tr class="b">${td('Tổng (tr.kWh)')}${tdn(c.chenh_total,4)}${tdn(chenh_lk_t,4)}${tdn(chenh_lk_n,4)}</tr>
+          <tr>${td('Do sự cố')}${tdn(n('chenh_su_co'),4)}${tdn(n('chenh_su_co_lk_t'),4)}${tdn(n('chenh_su_co_lk_n'),4)}</tr>
+          <tr>${td('Do thủy văn / ấn định')}${tdn(c.chenh_tv,4)}${tdn(n('chenh_tv_lk_t'),4)}${tdn(n('chenh_tv_lk_n'),4)}</tr>
+          <tr>${td('Do EVN / A0 điều độ')}${tdn(c.chenh_evn,4)}${tdn(n('chenh_evn_lk_t'),4)}${tdn(n('chenh_evn_lk_n'),4)}</tr>
+        </tbody></table>
+      </div>
+      <div>
+        <table><thead><tr><th class="left">Số giờ ngừng máy</th><th>Trong ngày</th><th>LK tháng</th><th>LK năm</th></tr></thead><tbody>
+          <tr>${td('Toàn nhà máy')}${tdn(n('gio_ngung_nm'),0)}${tdn(n('gio_ngung_nm_lk_t'),0)}${tdn(n('gio_ngung_nm_lk_n'),0)}</tr>
+          <tr>${td('TM1')}${tdn(n('gio_ngung_tm1'),0)}${tdn(n('gio_ngung_tm1_lk_t'),0)}${tdn(n('gio_ngung_tm1_lk_n'),0)}</tr>
+          <tr>${td('TM2')}${tdn(n('gio_ngung_tm2'),0)}${tdn(n('gio_ngung_tm2_lk_t'),0)}${tdn(n('gio_ngung_tm2_lk_n'),0)}</tr>
+        </tbody></table>
+      </div>
+    </div>
+
+    <div id="rpt-s5" class="sec">V. Tình hình vận hành trong ngày</div>
+    <table><thead><tr><th style="width:82px">Hạng mục</th><th class="left">Nội dung & sự kiện trong ngày</th></tr></thead><tbody>
+      <tr>${td('TM1','c b')}${td(D.ev_tm1)}</tr>
+      <tr>${td('TM2','c b')}${td(D.ev_tm2)}</tr>
+      <tr>${td('Đập','c b')}${td(D.ev_dap)}</tr>
+      <tr>${td('TBA','c b')}${td(D.ev_tba)}</tr>
+    </tbody></table>
+    <div class="ev-note">${D.ev_note}</div>
+    <div class="sign">
+      <div class="sign-box">
+        <div class="sign-role">Người lập báo cáo</div>
+        <div class="sign-space"></div>
+        <div class="sign-name">${D.signer}</div>
+        <div class="sign-date">Ngày ${D.sign_date}</div>
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TAB SWITCH & SCROLL
+// ═══════════════════════════════════════════════════════════
+function switchTab(tab){
+  const isInput=tab==='input';
+  $('inputPanel').classList.toggle('hidden',!isInput);
+  $('reportPanel').classList.toggle('hidden',isInput);
+  $('modeInput').classList.toggle('active',isInput);
+  $('modeReport').classList.toggle('active',!isInput);
+  if(!isInput){ renderReport(); setTimeout(initRptChart,0); }
+}
+function scrollToId(id){
+  const el=$(id);
+  if(el){ const mc=document.querySelector('#reportPanel .main-content'); if(mc) mc.scrollTop=el.offsetTop-20; }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+buildSidebar();
+goSection(0);
+</script>
+</body>
+</html>
